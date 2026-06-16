@@ -6,7 +6,7 @@
 
 (in-package #:todo-client/components/signup)
 
-(define-component signup-page (error)
+(define-component signup-page (&key error &allow-other-keys)
   `(:div
     (:h1 "Sign Up")
     ,@(when error

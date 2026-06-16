@@ -7,7 +7,7 @@
 
 (in-package #:todo-client/components/todo-form)
 
-(define-component todo-form-page (error)
+(define-component todo-form-page (&key error &allow-other-keys)
   (let ((token (get-cookie "todo-session")))
     (if (null token)
         `(:script "window.location.replace('/login');")

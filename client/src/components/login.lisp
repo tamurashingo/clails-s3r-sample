@@ -6,7 +6,7 @@
 
 (in-package #:todo-client/components/login)
 
-(define-component login-page (error)
+(define-component login-page (&key error &allow-other-keys)
   `(:div
     (:h1 "Log In")
     ,@(when error
