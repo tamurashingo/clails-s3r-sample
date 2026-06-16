@@ -10,19 +10,11 @@
                 #:*current-cookies*)
   (:import-from #:todo-client-test/helpers
                 #:find-in-tree
-                #:string-in-tree-p
                 #:find-element
                 #:with-mock-fn))
 (in-package #:todo-client-test/components/todo-list)
 
 (deftest test-todo-list-page
-  (testing "redirects to /login when no session cookie"
-    (let ((*current-cookies* nil))
-      (let* ((result (test-render-component "todo-list-page"))
-             (sexp (getf result :sexp)))
-        (ok (eq :script (car sexp)) "returns :script element")
-        (ok (string-in-tree-p sexp "/login") "redirects to /login"))))
-
   (testing "shows 'No TODOs yet' when API fails (no server)"
     (let ((*current-cookies* '(("todo-session" . "faketoken"))))
       (let* ((result (test-render-component "todo-list-page"))

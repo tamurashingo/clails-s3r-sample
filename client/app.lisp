@@ -5,6 +5,8 @@
   (:import-from #:cl-s3r.server
                 #:configure-root-page
                 #:configure-route)
+  (:import-from #:cl-s3r.cookie
+                #:get-cookie-from-env)
   (:import-from #:todo-client/components/root)
   (:import-from #:todo-client/components/signup)
   (:import-from #:todo-client/components/login)
@@ -21,14 +23,20 @@
       (search "/api/action" path)
       (string= "/app.js" path)))
 
+(defun require-auth (env)
+  (unless (get-cookie-from-env env "todo-session")
+    "/login"))
+
 ;; Register routes at load time so s3rup can start the server directly.
 (configure-root-page :component "root")
 (configure-route :path "/signup"   :component "signup-page"      :props '())
 (configure-route :path "/login"    :component "login-page"        :props '())
-(configure-route :path "/todos"    :component "todo-list-page"    :props '())
-(configure-route :path "/todo/new" :component "todo-form-page"    :props '())
+(configure-route :path "/todos"    :component "todo-list-page"    :props '()
+                 :guard #'require-auth)
+(configure-route :path "/todo/new" :component "todo-form-page"    :props '()
+                 :guard #'require-auth)
 (configure-route :path "/todo"     :component "todo-detail-page"  :props '()
-                 :path-param :ulid)
+                 :path-param :ulid :guard #'require-auth)
 
 (defun app (env)
   "POST middleware wrapper: intercepts form submissions, delegates everything else to cl-s3r."

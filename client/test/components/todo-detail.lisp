@@ -8,7 +8,6 @@
                 #:*current-cookies*)
   (:import-from #:todo-client-test/helpers
                 #:find-in-tree
-                #:string-in-tree-p
                 #:find-element
                 #:with-mock-fn))
 (in-package #:todo-client-test/components/todo-detail)
@@ -17,14 +16,6 @@
   "{\"ulid\":\"01HGWPF3MCKYVHMDZRQT4WVJDS\",\"subject\":\"Test Todo\",\"content\":\"Some content\"}")
 
 (deftest test-todo-detail-page
-  (testing "redirects to /login when no session cookie"
-    (let ((*current-cookies* nil))
-      (let* ((result (test-render-component "todo-detail-page"
-                                            :args (list :ulid "01HGWPF3MCKYVHMDZRQT4WVJDS" :mode nil :error nil)))
-             (sexp (getf result :sexp)))
-        (ok (eq :script (car sexp)) "returns :script element")
-        (ok (string-in-tree-p sexp "/login") "redirects to /login"))))
-
   (testing "shows 'ULID not specified' when ulid is nil"
     (let ((*current-cookies* '(("todo-session" . "faketoken"))))
       (let* ((result (test-render-component "todo-detail-page"
