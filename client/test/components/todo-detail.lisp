@@ -1,0 +1,100 @@
+; -*- mode: lisp -*-
+(in-package #:cl-user)
+(defpackage #:todo-client-test/components/todo-detail
+  (:use #:cl #:rove)
+  (:import-from #:cl-s3r.testing
+                #:test-render-component)
+  (:import-from #:cl-s3r.cookie
+                #:*current-cookies*)
+  (:import-from #:todo-client-test/helpers
+                #:find-in-tree
+                #:string-in-tree-p
+                #:find-element
+                #:with-mock-fn))
+(in-package #:todo-client-test/components/todo-detail)
+
+(defparameter +mock-todo-json+
+  "{\"ulid\":\"01HGWPF3MCKYVHMDZRQT4WVJDS\",\"subject\":\"Test Todo\",\"content\":\"Some content\"}")
+
+(deftest test-todo-detail-page
+  (testing "redirects to /login when no session cookie"
+    (let ((*current-cookies* nil))
+      (let* ((result (test-render-component "todo-detail-page"
+                                            :args (list "01HGWPF3MCKYVHMDZRQT4WVJDS" nil nil)))
+             (sexp (getf result :sexp)))
+        (ok (eq :script (car sexp)) "returns :script element")
+        (ok (string-in-tree-p sexp "/login") "redirects to /login"))))
+
+  (testing "shows 'ULID not specified' when ulid is nil"
+    (let ((*current-cookies* '(("todo-session" . "faketoken"))))
+      (let* ((result (test-render-component "todo-detail-page"
+                                            :args (list nil nil nil)))
+             (sexp (getf result :sexp)))
+        (ok (find-in-tree sexp "ULID not specified")
+            "shows ULID not specified message"))))
+
+  (testing "shows 'TODO not found' when API fails"
+    (let ((*current-cookies* '(("todo-session" . "faketoken"))))
+      (let* ((result (test-render-component "todo-detail-page"
+                                            :args (list "00000000000000000000000000" nil nil)))
+             (sexp (getf result :sexp)))
+        ;; api-get fails (connection refused) -> handler-case -> todo = nil
+        (ok (find-in-tree sexp "TODO not found")
+            "shows TODO not found message"))))
+
+  (testing "renders detail view with todo subject"
+    (let ((*current-cookies* '(("todo-session" . "faketoken"))))
+      (with-mock-fn (todo-client/api-client:api-get
+                     (lambda (path token)
+                       (declare (ignore path token))
+                       +mock-todo-json+))
+        (let* ((result (test-render-component "todo-detail-page"
+                                              :args (list "01HGWPF3MCKYVHMDZRQT4WVJDS" nil nil)))
+               (sexp (getf result :sexp)))
+          (ok (find-in-tree sexp "Test Todo") "todo subject is shown")
+          (ok (find-in-tree sexp "Not completed") "completion status is shown")))))
+
+  (testing "renders detail view with back link"
+    (let ((*current-cookies* '(("todo-session" . "faketoken"))))
+      (with-mock-fn (todo-client/api-client:api-get
+                     (lambda (path token)
+                       (declare (ignore path token))
+                       +mock-todo-json+))
+        (let* ((result (test-render-component "todo-detail-page"
+                                              :args (list "01HGWPF3MCKYVHMDZRQT4WVJDS" nil nil)))
+               (sexp (getf result :sexp)))
+          (ok (find-in-tree sexp "/todos") "back to list link is present")))))
+
+  (testing "renders edit form in edit mode"
+    (let ((*current-cookies* '(("todo-session" . "faketoken"))))
+      (with-mock-fn (todo-client/api-client:api-get
+                     (lambda (path token)
+                       (declare (ignore path token))
+                       +mock-todo-json+))
+        (let* ((result (test-render-component "todo-detail-page"
+                                              :args (list "01HGWPF3MCKYVHMDZRQT4WVJDS" "edit" nil)))
+               (sexp (getf result :sexp)))
+          (ok (find-in-tree sexp "Edit TODO") "edit form header is shown")
+          (ok (find-element sexp :form) "form element is present")))))
+
+  (testing "edit form contains todo subject as input value"
+    (let ((*current-cookies* '(("todo-session" . "faketoken"))))
+      (with-mock-fn (todo-client/api-client:api-get
+                     (lambda (path token)
+                       (declare (ignore path token))
+                       +mock-todo-json+))
+        (let* ((result (test-render-component "todo-detail-page"
+                                              :args (list "01HGWPF3MCKYVHMDZRQT4WVJDS" "edit" nil)))
+               (sexp (getf result :sexp)))
+          (ok (find-in-tree sexp "Test Todo") "input has todo subject value")))))
+
+  (testing "shows error message in detail view when error arg is provided"
+    (let ((*current-cookies* '(("todo-session" . "faketoken"))))
+      (with-mock-fn (todo-client/api-client:api-get
+                     (lambda (path token)
+                       (declare (ignore path token))
+                       +mock-todo-json+))
+        (let* ((result (test-render-component "todo-detail-page"
+                                              :args (list "01HGWPF3MCKYVHMDZRQT4WVJDS" nil "Update failed")))
+               (sexp (getf result :sexp)))
+          (ok (find-in-tree sexp "Update failed") "error message is shown"))))))

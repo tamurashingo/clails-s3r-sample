@@ -1,0 +1,60 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: todo_db
+    environment:
+      POSTGRES_DB: todo_dev
+      POSTGRES_USER: todo_user
+      POSTGRES_PASSWORD: todo_pass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U todo_user -d todo_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - todo-net
+
+  server:
+    build:
+      context: ./server
+    container_name: todo_server
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    environment:
+      CLAILS_DB_ENGINE: postgresql
+      CLAILS_DB_NAME: todo_dev
+      CLAILS_DB_HOST: db
+      CLAILS_DB_PORT: "5432"
+      CLAILS_DB_USER: todo_user
+      CLAILS_DB_PASSWORD: todo_pass
+      PORT: "5000"
+    networks:
+      - todo-net
+
+  client:
+    build:
+      context: ./client
+    container_name: todo_client
+    depends_on:
+      - server
+    ports:
+      - "3000:3000"
+    environment:
+      API_SERVER_URL: "http://server:5000"
+      PORT: "3000"
+    networks:
+      - todo-net
+
+volumes:
+  pgdata:
+
+networks:
+  todo-net:
+    driver: bridge
