@@ -20,7 +20,7 @@
   (testing "redirects to /login when no session cookie"
     (let ((*current-cookies* nil))
       (let* ((result (test-render-component "todo-detail-page"
-                                            :args (list "01HGWPF3MCKYVHMDZRQT4WVJDS" nil nil)))
+                                            :args (list :ulid "01HGWPF3MCKYVHMDZRQT4WVJDS" :mode nil :error nil)))
              (sexp (getf result :sexp)))
         (ok (eq :script (car sexp)) "returns :script element")
         (ok (string-in-tree-p sexp "/login") "redirects to /login"))))
@@ -28,7 +28,7 @@
   (testing "shows 'ULID not specified' when ulid is nil"
     (let ((*current-cookies* '(("todo-session" . "faketoken"))))
       (let* ((result (test-render-component "todo-detail-page"
-                                            :args (list nil nil nil)))
+                                            :args (list :ulid nil :mode nil :error nil)))
              (sexp (getf result :sexp)))
         (ok (find-in-tree sexp "ULID not specified")
             "shows ULID not specified message"))))
@@ -36,7 +36,7 @@
   (testing "shows 'TODO not found' when API fails"
     (let ((*current-cookies* '(("todo-session" . "faketoken"))))
       (let* ((result (test-render-component "todo-detail-page"
-                                            :args (list "00000000000000000000000000" nil nil)))
+                                            :args (list :ulid "00000000000000000000000000" :mode nil :error nil)))
              (sexp (getf result :sexp)))
         ;; api-get fails (connection refused) -> handler-case -> todo = nil
         (ok (find-in-tree sexp "TODO not found")
@@ -49,7 +49,7 @@
                        (declare (ignore path token))
                        +mock-todo-json+))
         (let* ((result (test-render-component "todo-detail-page"
-                                              :args (list "01HGWPF3MCKYVHMDZRQT4WVJDS" nil nil)))
+                                              :args (list :ulid "01HGWPF3MCKYVHMDZRQT4WVJDS" :mode nil :error nil)))
                (sexp (getf result :sexp)))
           (ok (find-in-tree sexp "Test Todo") "todo subject is shown")
           (ok (find-in-tree sexp "Not completed") "completion status is shown")))))
@@ -61,7 +61,7 @@
                        (declare (ignore path token))
                        +mock-todo-json+))
         (let* ((result (test-render-component "todo-detail-page"
-                                              :args (list "01HGWPF3MCKYVHMDZRQT4WVJDS" nil nil)))
+                                              :args (list :ulid "01HGWPF3MCKYVHMDZRQT4WVJDS" :mode nil :error nil)))
                (sexp (getf result :sexp)))
           (ok (find-in-tree sexp "/todos") "back to list link is present")))))
 
@@ -72,7 +72,7 @@
                        (declare (ignore path token))
                        +mock-todo-json+))
         (let* ((result (test-render-component "todo-detail-page"
-                                              :args (list "01HGWPF3MCKYVHMDZRQT4WVJDS" "edit" nil)))
+                                              :args (list :ulid "01HGWPF3MCKYVHMDZRQT4WVJDS" :mode "edit" :error nil)))
                (sexp (getf result :sexp)))
           (ok (find-in-tree sexp "Edit TODO") "edit form header is shown")
           (ok (find-element sexp :form) "form element is present")))))
@@ -84,7 +84,7 @@
                        (declare (ignore path token))
                        +mock-todo-json+))
         (let* ((result (test-render-component "todo-detail-page"
-                                              :args (list "01HGWPF3MCKYVHMDZRQT4WVJDS" "edit" nil)))
+                                              :args (list :ulid "01HGWPF3MCKYVHMDZRQT4WVJDS" :mode "edit" :error nil)))
                (sexp (getf result :sexp)))
           (ok (find-in-tree sexp "Test Todo") "input has todo subject value")))))
 
@@ -95,6 +95,6 @@
                        (declare (ignore path token))
                        +mock-todo-json+))
         (let* ((result (test-render-component "todo-detail-page"
-                                              :args (list "01HGWPF3MCKYVHMDZRQT4WVJDS" nil "Update failed")))
+                                              :args (list :ulid "01HGWPF3MCKYVHMDZRQT4WVJDS" :mode nil :error "Update failed")))
                (sexp (getf result :sexp)))
           (ok (find-in-tree sexp "Update failed") "error message is shown"))))))

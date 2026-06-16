@@ -27,7 +27,7 @@
       ,@(when (and deadline (not (eq deadline :null)))
           `((:span (@ (class "deadline")) ,(format nil "Deadline: ~A" deadline)))))))
 
-(define-component todo-list-page ()
+(define-component todo-list-page (&key &allow-other-keys)
   (let ((token (get-cookie "todo-session")))
     (if (null token)
         `(:script "window.location.replace('/login');")

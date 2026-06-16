@@ -6,7 +6,7 @@
 
 (in-package #:todo-client/components/root)
 
-(define-component root (children)
+(define-component root (&key children &allow-other-keys)
   `(:html
     (:head
      (:meta (@ (:charset "UTF-8")))

@@ -58,8 +58,7 @@
                  (:method "post") (:style "display:inline"))
          (:button (@ (:type "submit")) "Delete"))))))
 
-; positional args: ulid, mode, error
-(define-component todo-detail-page (ulid mode error)
+(define-component todo-detail-page (&key ulid mode error &allow-other-keys)
   (let ((token (get-cookie "todo-session")))
     (if (null token)
         `(:script "window.location.replace('/login');")
