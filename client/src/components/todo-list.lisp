@@ -6,7 +6,7 @@
                 #:define-component
                 #:let-component-state
                 #:let-function)
-  (:import-from #:cl-s3r.cookie #:get-cookie)
+  (:import-from #:cl-s3r.session #:get-session)
   (:import-from #:todo-client/api-client #:api-get #:api-post #:api-put))
 
 (in-package #:todo-client/components/todo-list)
@@ -28,7 +28,7 @@
           `((:span (@ (class "deadline")) ,(format nil "Deadline: ~A" deadline)))))))
 
 (define-component todo-list-page (&key &allow-other-keys)
-  (let* ((token (get-cookie "todo-session"))
+  (let* ((token (getf (get-session :token) :token))
          (todos (handler-case
                     (jonathan:parse (api-get "/api/todos" token))
                   (error () nil))))
