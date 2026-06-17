@@ -86,5 +86,6 @@ test.server:
 
 test.client:
 	docker compose run --rm --no-deps \
-	  -e CL_SOURCE_REGISTRY=/app//: \
+	  -e CL_SOURCE_REGISTRY=/ext/cl-s3r//:/app//: \
+	  -v $(abspath $(CURDIR)/../cl-s3r):/ext/cl-s3r \
 	  --entrypoint rove client /app/todo-client.asd
