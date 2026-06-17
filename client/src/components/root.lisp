@@ -2,11 +2,11 @@
 (in-package #:cl-user)
 (defpackage #:todo-client/components/root
   (:use #:cl)
-  (:import-from #:cl-s3r.component #:define-component))
+  (:import-from #:cl-s3r.component #:define-layout))
 
 (in-package #:todo-client/components/root)
 
-(define-component root (&key children &allow-other-keys)
+(define-layout app-layout (&key children &allow-other-keys)
   `(:html
     (:head
      (:meta (@ (:charset "UTF-8")))
