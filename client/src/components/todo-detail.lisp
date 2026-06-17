@@ -3,7 +3,7 @@
 (defpackage #:todo-client/components/todo-detail
   (:use #:cl)
   (:import-from #:cl-s3r.component #:define-component)
-  (:import-from #:cl-s3r.cookie #:get-cookie)
+  (:import-from #:cl-s3r.session #:get-session)
   (:import-from #:todo-client/api-client #:api-get))
 
 (in-package #:todo-client/components/todo-detail)
@@ -59,7 +59,7 @@
          (:button (@ (:type "submit")) "Delete"))))))
 
 (define-component todo-detail-page (&key ulid mode error &allow-other-keys)
-  (let ((token (get-cookie "todo-session")))
+  (let ((token (getf (get-session :token) :token)))
     (if (null ulid)
         `(:p "ULID not specified")
         (let ((todo (handler-case

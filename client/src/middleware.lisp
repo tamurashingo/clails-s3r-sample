@@ -6,6 +6,10 @@
                 #:api-post
                 #:api-put
                 #:api-delete)
+  (:import-from #:cl-s3r.session
+                #:get-session
+                #:set-session
+                #:destroy-session)
   (:export #:handle-post))
 
 (in-package #:todo-client/middleware)
@@ -62,23 +66,11 @@
 (defun get-form-param (params key)
   (cdr (assoc key params :test #'string=)))
 
-(defun get-session-token (env)
-  (let* ((cookie-header (gethash "cookie" (getf env :headers)))
-         (cookies (cl-s3r.cookie:parse-cookies cookie-header)))
-    (cdr (assoc "todo-session" cookies :test #'string=))))
+(defun get-session-token ()
+  (getf (get-session :token) :token))
 
-(defun redirect-303 (location &key cookie-header)
-  (let ((headers (list :location location
-                       :content-type "text/html")))
-    (when cookie-header
-      (setf headers (append headers (list :set-cookie cookie-header))))
-    `(303 ,headers (""))))
-
-(defun session-cookie (token)
-  (format nil "todo-session=~A; Path=/; HttpOnly; SameSite=Lax" token))
-
-(defun clear-session-cookie ()
-  "todo-session=; Path=/; HttpOnly; Max-Age=0")
+(defun redirect-303 (location)
+  `(303 (:location ,location :content-type "text/html") ("")))
 
 (defun extract-todo-ulid (path)
   "Extract ULID from /todo/:ulid or /todo/:ulid/action paths."
@@ -123,12 +115,8 @@
                                   (list :|email| email :|password| password)))
              (data     (jonathan:parse resp))
              (token    (getf data :|token|)))
-
-(format t "client:resp: ~S~%" resp)
-(format t "client:data: ~S~%" data)
-(format t "client:token: ~S~%" token)
-
-        (redirect-303 "/todos" :cookie-header (session-cookie token)))
+        (set-session (list :token token))
+        (redirect-303 "/todos"))
     (dex:http-request-failed ()
       (redirect-303 "/login?error=invalid"))))
 
@@ -137,7 +125,8 @@
       (when token
         (api-delete "/api/sessions" token))
     (error ()))
-  (redirect-303 "/login" :cookie-header (clear-session-cookie)))
+  (destroy-session)
+  (redirect-303 "/login"))
 
 (defun do-create-todo (params token)
   (if (null token)
@@ -206,7 +195,7 @@
 
 (defun handle-post (env s3r-app)
   (let ((path  (getf env :path-info))
-        (token (get-session-token env)))
+        (token (get-session-token)))
     (cond
       ((string= path "/signup")
        (do-signup (parse-form-body env)))

@@ -5,8 +5,8 @@
   (:import-from #:cl-s3r.server
                 #:configure-root-page
                 #:configure-route)
-  (:import-from #:cl-s3r.cookie
-                #:get-cookie-from-env)
+  (:import-from #:cl-s3r.session
+                #:get-session)
   (:import-from #:todo-client/components/root)
   (:import-from #:todo-client/components/signup)
   (:import-from #:todo-client/components/login)
@@ -24,7 +24,8 @@
       (string= "/app.js" path)))
 
 (defun require-auth (env)
-  (unless (get-cookie-from-env env "todo-session")
+  (declare (ignore env))
+  (unless (getf (get-session :token) :token)
     "/login"))
 
 ;; Register routes at load time so s3rup can start the server directly.
