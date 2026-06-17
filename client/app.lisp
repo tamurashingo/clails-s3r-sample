@@ -3,10 +3,15 @@
 (defpackage #:todo-client/app
   (:use #:cl)
   (:import-from #:cl-s3r.server
-                #:configure-root-page
+                #:configure-default-layout
                 #:configure-route)
   (:import-from #:cl-s3r.session
                 #:get-session)
+  (:import-from #:cl-s3r.cookie
+                #:*current-cookies*
+                #:*pending-cookie-changes*
+                #:parse-cookies
+                #:inject-set-cookie-headers)
   (:import-from #:todo-client/components/root)
   (:import-from #:todo-client/components/signup)
   (:import-from #:todo-client/components/login)
@@ -29,7 +34,7 @@
     "/login"))
 
 ;; Register routes at load time so s3rup can start the server directly.
-(configure-root-page :component "root")
+(configure-default-layout 'todo-client/components/root::app-layout)
 (configure-route :path "/signup"   :component "signup-page"      :props '())
 (configure-route :path "/login"    :component "login-page"        :props '())
 (configure-route :path "/todos"    :component "todo-list-page"    :props '()
@@ -49,7 +54,10 @@
        '(302 (:location "/login") ("")))
       ((and (eq method :post)
             (not (cl-s3r-path-p path)))
-       (handle-post env (lambda (e) (cl-s3r.server::app e))))
+       (let ((*current-cookies* (parse-cookies (gethash "cookie" (getf env :headers))))
+             (*pending-cookie-changes* nil))
+         (inject-set-cookie-headers
+          (handle-post env (lambda (e) (cl-s3r.server::app e))))))
       (t
        (cl-s3r.server::app env)))))
 
