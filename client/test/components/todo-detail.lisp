@@ -4,6 +4,10 @@
   (:use #:cl #:rove)
   (:import-from #:cl-s3r.testing
                 #:test-render-component)
+  (:import-from #:cl-s3r.component
+                #:http-error
+                #:http-error-status-code
+                #:http-error-params)
   (:import-from #:cl-s3r.cookie
                 #:*current-cookies*
                 #:*pending-cookie-changes*)
@@ -25,28 +29,38 @@
   (setf *session-secret* "test-secret"))
 
 (deftest test-todo-detail-page
-  (testing "shows 'ULID not specified' when ulid is nil"
+  (testing "signals 404 when ulid is nil"
     (reset-test-state)
     (let ((session-cookie (create-session-for-test '(:token "faketoken"))))
       (let ((*current-cookies* (list session-cookie))
             (*pending-cookie-changes* nil))
-        (let* ((result (test-render-component "todo-detail-page"
-                                              :args (list :ulid nil :mode nil :error nil)))
-               (sexp (getf result :sexp)))
-          (ok (find-in-tree sexp "ULID not specified")
-              "shows ULID not specified message")))))
+        (let ((error-raised nil)
+              (error-status nil))
+          (handler-case
+            (test-render-component "todo-detail-page"
+                                   :args (list :ulid nil :mode nil :error nil))
+            (http-error (e)
+              (setf error-raised t)
+              (setf error-status (http-error-status-code e))))
+          (ok error-raised "http-error is signaled")
+          (ok (= 404 error-status) "status code is 404")))))
 
-  (testing "shows 'TODO not found' when API fails"
+  (testing "signals 404 when API fails"
     (reset-test-state)
     (let ((session-cookie (create-session-for-test '(:token "faketoken"))))
       (let ((*current-cookies* (list session-cookie))
             (*pending-cookie-changes* nil))
-        (let* ((result (test-render-component "todo-detail-page"
-                                              :args (list :ulid "00000000000000000000000000" :mode nil :error nil)))
-               (sexp (getf result :sexp)))
-          ;; api-get fails (connection refused) -> handler-case -> todo = nil
-          (ok (find-in-tree sexp "TODO not found")
-              "shows TODO not found message")))))
+        (let ((error-raised nil)
+              (error-status nil))
+          ;; api-get fails (connection refused) -> handler-case -> todo = nil -> signal-http-error
+          (handler-case
+            (test-render-component "todo-detail-page"
+                                   :args (list :ulid "00000000000000000000000000" :mode nil :error nil))
+            (http-error (e)
+              (setf error-raised t)
+              (setf error-status (http-error-status-code e))))
+          (ok error-raised "http-error is signaled")
+          (ok (= 404 error-status) "status code is 404")))))
 
   (testing "renders detail view with todo subject"
     (reset-test-state)
