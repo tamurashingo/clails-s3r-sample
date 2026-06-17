@@ -29,6 +29,11 @@
       (ok head "head element is present")
       (ok (find-in-tree head "TODO App") "title is 'TODO App'")))
 
+  (testing "has stylesheet link in head"
+    (let* ((sexp (render-layout "app-layout" :children nil))
+           (head (find-element sexp :head)))
+      (ok (find-in-tree head "/styles.css") "stylesheet link is present in head")))
+
   (testing "has :body"
     (let* ((sexp (render-layout "app-layout" :children nil)))
       (ok (find-element sexp :body) "body element is present")))

@@ -5,6 +5,7 @@
   (:import-from #:cl-s3r.server
                 #:configure-default-layout
                 #:configure-route
+                #:configure-static-dir
                 #:define-error-page)
   (:import-from #:cl-s3r.session
                 #:get-session)
@@ -35,6 +36,7 @@
     "/login"))
 
 ;; Register routes at load time so s3rup can start the server directly.
+(configure-static-dir (asdf:system-relative-pathname "todo-client" "public/"))
 (configure-default-layout 'todo-client/components/root::app-layout)
 
 (define-error-page :status 404 :component "not-found-page")
@@ -49,6 +51,9 @@
 (configure-route :path "/todo"     :component "todo-detail-page"  :props '()
                  :path-param :ulid :guard #'require-auth)
 
+;; Holds the cl-s3r app wrapped with static file middleware (set in start-server).
+(defvar *s3r-handler* nil)
+
 (defun app (env)
   "POST middleware wrapper: intercepts form submissions, delegates everything else to cl-s3r."
   (let ((method (getf env :request-method))
@@ -62,14 +67,16 @@
        (let ((*current-cookies* (parse-cookies (gethash "cookie" (getf env :headers))))
              (*pending-cookie-changes* nil))
          (inject-set-cookie-headers
-          (handle-post env (lambda (e) (cl-s3r.server::app e))))))
+          (handle-post env (lambda (e) (funcall *s3r-handler* e))))))
       (t
-       (cl-s3r.server::app env)))))
+       (funcall *s3r-handler* env)))))
 
 ;; Override start-server so s3rup's run-server -> start-server picks up our app
 ;; instead of cl-s3r.server::app.  Patching start-server (not app) avoids the
 ;; SBCL in-place defun update that caused infinite recursion when patching app.
+;; *s3r-handler* is set to build-app's result so static file middleware is active.
 (defun cl-s3r.server::start-server (&key (port 5000) (address "0.0.0.0"))
   (format t "Starting server on ~A:~A...~%" address port)
+  (setf *s3r-handler* (cl-s3r.server::build-app))
   (setf cl-s3r.server::*handler*
         (clack:clackup #'app :port port :address address)))
