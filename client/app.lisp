@@ -4,7 +4,8 @@
   (:use #:cl)
   (:import-from #:cl-s3r.server
                 #:configure-default-layout
-                #:configure-route)
+                #:configure-route
+                #:define-error-page)
   (:import-from #:cl-s3r.session
                 #:get-session)
   (:import-from #:cl-s3r.cookie
@@ -35,6 +36,10 @@
 
 ;; Register routes at load time so s3rup can start the server directly.
 (configure-default-layout 'todo-client/components/root::app-layout)
+
+(define-error-page :status 404 :component "not-found-page")
+(define-error-page :status 500 :component "server-error-page")
+
 (configure-route :path "/signup"   :component "signup-page"      :props '())
 (configure-route :path "/login"    :component "login-page"        :props '())
 (configure-route :path "/todos"    :component "todo-list-page"    :props '()

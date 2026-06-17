@@ -2,7 +2,7 @@
 (in-package #:cl-user)
 (defpackage #:todo-client/components/todo-detail
   (:use #:cl)
-  (:import-from #:cl-s3r.component #:define-component)
+  (:import-from #:cl-s3r.component #:define-component #:signal-http-error)
   (:import-from #:cl-s3r.session #:get-session)
   (:import-from #:todo-client/api-client #:api-get))
 
@@ -60,13 +60,13 @@
 
 (define-component todo-detail-page (&key ulid mode error &allow-other-keys)
   (let ((token (getf (get-session :token) :token)))
-    (if (null ulid)
-        `(:p "ULID not specified")
-        (let ((todo (handler-case
-                         (jonathan:parse (api-get (format nil "/api/todos/~A" ulid) token))
-                       (error () nil))))
-          (if (null todo)
-              `(:p "TODO not found")
-              (if (and mode (not (string= mode "")) (string= mode "edit"))
-                  (render-edit-form todo ulid)
-                  (render-detail-view todo ulid error)))))))
+    (unless ulid
+      (signal-http-error 404 :message "ULID not specified"))
+    (let ((todo (handler-case
+                     (jonathan:parse (api-get (format nil "/api/todos/~A" ulid) token))
+                   (error () nil))))
+      (unless todo
+        (signal-http-error 404 :message (format nil "TODO ~A not found." ulid)))
+      (if (and mode (not (string= mode "")) (string= mode "edit"))
+          (render-edit-form todo ulid)
+          (render-detail-view todo ulid error)))))

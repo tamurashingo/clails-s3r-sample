@@ -4,6 +4,8 @@
   (:use #:cl #:rove)
   (:import-from #:cl-s3r.component
                 #:*layout-registry*)
+  (:import-from #:cl-s3r.testing
+                #:test-render-component)
   (:import-from #:todo-client-test/helpers
                 #:find-in-tree
                 #:find-element))
@@ -36,3 +38,35 @@
            (sexp (render-layout "app-layout" :children children))
            (body (find-element sexp :body)))
       (ok (find-in-tree body "Hello World") "children are rendered in body"))))
+
+(deftest test-not-found-page
+  (testing "renders 404 heading"
+    (let* ((result (test-render-component "not-found-page" :args '()))
+           (sexp (getf result :sexp)))
+      (ok (find-in-tree sexp "404 - Not Found") "404 heading is shown")))
+
+  (testing "renders message when provided"
+    (let* ((result (test-render-component "not-found-page" :args '(:message "Item not found.")))
+           (sexp (getf result :sexp)))
+      (ok (find-in-tree sexp "Item not found.") "message is shown")))
+
+  (testing "contains back link"
+    (let* ((result (test-render-component "not-found-page" :args '()))
+           (sexp (getf result :sexp)))
+      (ok (find-in-tree sexp "/todos") "back link is present"))))
+
+(deftest test-server-error-page
+  (testing "renders 500 heading"
+    (let* ((result (test-render-component "server-error-page" :args '()))
+           (sexp (getf result :sexp)))
+      (ok (find-in-tree sexp "500 - Internal Server Error") "500 heading is shown")))
+
+  (testing "renders message when provided"
+    (let* ((result (test-render-component "server-error-page" :args '(:message "Something went wrong.")))
+           (sexp (getf result :sexp)))
+      (ok (find-in-tree sexp "Something went wrong.") "message is shown")))
+
+  (testing "contains back link"
+    (let* ((result (test-render-component "server-error-page" :args '()))
+           (sexp (getf result :sexp)))
+      (ok (find-in-tree sexp "/todos") "back link is present"))))
